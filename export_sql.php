@@ -9,12 +9,11 @@ $success = 0;
 if (isset($_POST['export'])) {
   $output = NULL;
   $result = NULL;
-  $database = "laravel11";
+  $database = $_POST['database'];
   $user = $_POST['username'];
   $pass = $_POST['password'];
   $host = $_POST['host'];
-  $filename = !empty($_POST['filename']) ? $_POST['filename'] : 'mySQLDump' . rand(10, 1000);
-  $dir = getenv('HOMEDRIVE') . getenv('HOMEPATH') . '\Downloads' . '/' . $filename . '.sql';
+
 
   // $mime = "application/x-gzip";
   // header("Content-Type: " . $mime);
@@ -22,24 +21,46 @@ if (isset($_POST['export'])) {
   // $cmd = "mysqldump -u $user --password=$pass $database | gzip --best";
   // passthru($cmd);
 
-  // exec('mysqldump --user=' . $user . ' --password=' . $pass . ' --host=' . $host . ' ' . $database[0] . ' > mysqk.sql', $output, $result);
-  // var_dump($output, $result);
-  // exec("mysqldump --opt --user={$user} --password={$pass} --host={$host} {$database} --result-file={$dir} 2>&1", $output);
-  // foreach ($database as $db) {
-  // shell_exec("mysqldump --user={$user} --password={$pass} --host={$host} {$db} --result-file={$dir} 2>&1");
-  // }
-  // exec("mysqldump --user=" . $user . " --password=" . $pass . " --host=" . $host . " " . $database[0] . " --result-file=" . $dir . " 2>&1", $output);
-  // $command = 'mysqldump --opt -h ' . $host . ' -u ' . $user . ' -p' . $password . ' ' . $database . ' > ' . $filename;
 
-  // exec($command, $output = array(), $worked);
+  foreach ($database as $db) {
+    $filename = !empty($_POST['filename']) ? $_POST['filename'] : 'mySQLDump' . rand(10, 1000);
+    $dir = getenv('HOMEDRIVE') . getenv('HOMEPATH') . '\Downloads' . '/' . $filename . '.sql';
+    $command = "mysqldump --host=" . $host . " --user=" . $user . " --password=" . $pass . " " . $database[0] . " > " . $db . ".sql";
+    exec($command, $output, $result);
+  }
 
-  // $return_var = NULL;
-  // $output = NULL;
-  $command = "mysqldump --host=" . $host . " --user=" . $user . " --password=" . $pass . " " . $database . " > " . $filename . ".sql";
-  exec($command);
-  // var_dump($output, $return_var);
-  $success = 1;
+  $zip = new ZipArchive();
 
+  $DelFilePath = "databases.zip";
+
+  if (file_exists($DelFilePath)) {
+
+    unlink($DelFilePath);
+  }
+  if ($zip->open($DelFilePath, ZIPARCHIVE::CREATE) != TRUE) {
+    die("Could not open archive");
+  }
+
+  foreach ($database as $db) {
+    $zip->addFile("./" . $db . ".sql", $db . ".sql");
+  }
+
+  $zip->close();
+
+
+  if ($result) {
+    $success = 2;
+  } else {
+    $success = 1;
+  }
+
+  header($_SERVER['SERVER_PROTOCOL'] . ' 200 OK');
+  header("Content-Type: application/zip");
+  header("Content-Transfer-Encoding: Binary");
+  header("Content-Length: " . filesize("./" . $DelFilePath));
+  header("Content-Disposition: attachment; filename=/" . $DelFilePath);
+  readfile($DelFilePath);
+  exit;
 }
 ?>
 
@@ -99,7 +120,7 @@ if (isset($_POST['export'])) {
     </div>
   </div>
 
-  <?php if ($success == 1) { ?>
+  <?php if ($success > 0) { ?>
     <a href="./export_sql.php">
       <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -110,12 +131,21 @@ if (isset($_POST['export'])) {
             </div>
             <div class="modal-body">
               <div class="text-center">
-                <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="currentColor"
-                  class="bi bi-check-circle-fill text-success" viewBox="0 0 16 16">
-                  <path
-                    d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z" />
-                </svg><br><br>
-                <h4 class="text-muted">Export Database Successfully</h4>
+                <?php if ($success == 1) { ?>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="currentColor"
+                    class="bi bi-check-circle-fill text-success" viewBox="0 0 16 16">
+                    <path
+                      d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z" />
+                  </svg><br><br>
+                  <h4 class="text-muted">Export Database Successfully</h4>
+                <?php } else { ?>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="currentColor"
+                    class="bi bi-x-circle text-success" viewBox="0 0 16 16">
+                    <path
+                      d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z" />
+                  </svg><br><br>
+                  <h4 class="text-muted">Export Database Failed</h4>
+                <?php } ?>
               </div>
             </div>
             <div class="modal-footer">
@@ -128,18 +158,18 @@ if (isset($_POST['export'])) {
   <?php } ?>
 
   <script>
-    $(window).on('load', function () {
+    $(window).on('load', function() {
       $('#exampleModal').modal('show');
     });
   </script>
   <script>
     var i = 0;
-    $('#password').focusout(function (e) {
+    $('#password').focusout(function(e) {
       i = 1;
       $('#myForm').submit();
     });
 
-    $("#myForm").submit(function (event) {
+    $("#myForm").submit(function(event) {
       if (i) {
         let formData = $('#myForm').serialize();
         event.preventDefault();
@@ -147,8 +177,9 @@ if (isset($_POST['export'])) {
           method: "POST",
           url: 'back_end.php',
           data: formData,
-          success: function (data) {
+          success: function(data) {
             i = 0;
+            console.log(data);
             document.getElementById('database').innerHTML = data;
           }
         });
@@ -174,7 +205,7 @@ if (isset($_POST['export'])) {
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
     integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous">
-    </script>
+  </script>
 </body>
 
 </html>
