@@ -1,10 +1,9 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+require_once 'vendor/autoload.php';
 
 set_time_limit(500);
-$success = 0;
+session_start();
+$success = isset($_SESSION['success']) ? $_SESSION['success'] : 0;
 
 if (isset($_POST['export'])) {
   $output = NULL;
@@ -13,25 +12,19 @@ if (isset($_POST['export'])) {
   $user = $_POST['username'];
   $pass = $_POST['password'];
   $host = $_POST['host'];
-
-
-  // $mime = "application/x-gzip";
-  // header("Content-Type: " . $mime);
-  // header('Content-Disposition: attachment; filename="' . $filename . '"');
-  // $cmd = "mysqldump -u $user --password=$pass $database | gzip --best";
-  // passthru($cmd);
-
+  $filename = !empty($_POST['filename']) ? $_POST['filename'] : 'mySQLDump' . rand(10, 1000);
 
   foreach ($database as $db) {
-    $filename = !empty($_POST['filename']) ? $_POST['filename'] : 'mySQLDump' . rand(10, 1000);
-    $dir = getenv('HOMEDRIVE') . getenv('HOMEPATH') . '\Downloads' . '/' . $filename . '.sql';
-    $command = "mysqldump --host=" . $host . " --user=" . $user . " --password=" . $pass . " " . $database[0] . " > " . $db . ".sql";
-    exec($command, $output, $result);
+    // $dir = getenv('HOMEDRIVE') . getenv('HOMEPATH') . '\Downloads' . '/' . $filename . '.sql';
+    // $command = "mysqldump --host=" . $host . " --user=" . $user . " --password=" . $pass . " " . $db . " > " . $db . ".sql";
+
+    $dump = new \Druidfi\Mysqldump\Mysqldump('mysql:host=' . $host . ';dbname=' . $db, $user, $pass);
+    $dump->start($db . '.sql');
   }
 
   $zip = new ZipArchive();
 
-  $DelFilePath = "databases.zip";
+  $DelFilePath = $filename . ".zip";
 
   if (file_exists($DelFilePath)) {
 
@@ -46,20 +39,29 @@ if (isset($_POST['export'])) {
   }
 
   $zip->close();
-
+  $result = 1;
 
   if ($result) {
-    $success = 2;
+    $_SESSION['success'] = 1;
   } else {
-    $success = 1;
+    $_SESSION['success'] = 2;
   }
+
+  foreach ($database as $db) {
+    unlink($db . ".sql");
+  }
+
 
   header($_SERVER['SERVER_PROTOCOL'] . ' 200 OK');
   header("Content-Type: application/zip");
   header("Content-Transfer-Encoding: Binary");
-  header("Content-Length: " . filesize("./" . $DelFilePath));
-  header("Content-Disposition: attachment; filename=/" . $DelFilePath);
+  header("Content-Length: " . filesize($DelFilePath));
+  header("Content-Disposition: attachment; filename=" . $DelFilePath);
   readfile($DelFilePath);
+
+  unlink($DelFilePath);
+
+
   exit;
 }
 ?>
@@ -79,7 +81,7 @@ if (isset($_POST['export'])) {
 <body>
   <div class=" row justify-content-center my-5 mx-0 px-0">
     <div class="col-md-3 border rounded p-3">
-      <form id="myForm" class="text-wrap" method="POST" action="">
+      <form id="myForm" class="text-wrap" method="POST" action="" target="_blank">
         <center class="py-3 d-flex justify-content-center">
           <h3 class="border-bottom pb-2 border-primary">Export Your Database</h3>
         </center>
@@ -112,15 +114,17 @@ if (isset($_POST['export'])) {
             <button type="button" class="btn btn-success" onclick="location.reload()">
               Clear
             </button>
-            <input type="submit" value="Export" name="export" class="btn btn-primary"
-              onclick="return confirm('Are you sure?')">
+            <input type="submit" value="Export" name="export" class="btn btn-primary" onclick="return myConfirm()">
           </div>
         </div>
       </form>
     </div>
   </div>
 
-  <?php if ($success > 0) { ?>
+  <?php
+  $_SESSION['success'] = 0;
+  if ($success > 0) {
+    ?>
     <a href="./export_sql.php">
       <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -158,18 +162,27 @@ if (isset($_POST['export'])) {
   <?php } ?>
 
   <script>
-    $(window).on('load', function() {
+    function myConfirm() {
+      if (confirm("Are You Sure?") == true) {
+        setTimeout(() => {
+          location.reload();
+        }, 5000);
+      } else {
+        console.log("You canceled!");
+      }
+    }
+
+    $(window).on('load', function () {
       $('#exampleModal').modal('show');
     });
-  </script>
-  <script>
+
     var i = 0;
-    $('#password').focusout(function(e) {
+    $('#password').focusout(function (e) {
       i = 1;
       $('#myForm').submit();
     });
 
-    $("#myForm").submit(function(event) {
+    $("#myForm").submit(function (event) {
       if (i) {
         let formData = $('#myForm').serialize();
         event.preventDefault();
@@ -177,7 +190,7 @@ if (isset($_POST['export'])) {
           method: "POST",
           url: 'back_end.php',
           data: formData,
-          success: function(data) {
+          success: function (data) {
             i = 0;
             console.log(data);
             document.getElementById('database').innerHTML = data;
@@ -185,8 +198,6 @@ if (isset($_POST['export'])) {
         });
       }
     });
-
-
 
     function selectedDatabase(node) {
       let selected = node.options[node.selectedIndex].text;
@@ -205,7 +216,7 @@ if (isset($_POST['export'])) {
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
     integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous">
-  </script>
+    </script>
 </body>
 
 </html>
