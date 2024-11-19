@@ -20,14 +20,14 @@ if (isset($_POST['export'])) {
   }
 
   $zip = new ZipArchive();
-
-  $DelFilePath = $filename . "(" . date('Y-m-d H:i:s') . ").zip";
+  $DelFilePath = "./" . $filename . "(" . date('Y-m-d H:i:s') . ").zip";
 
   if (file_exists($DelFilePath)) {
 
     unlink($DelFilePath);
   }
-  if ($zip->open($DelFilePath, ZIPARCHIVE::CREATE) != TRUE) {
+  // if ($zip->open($DelFilePath, ZIPARCHIVE::CREATE) != TRUE) {
+  if ($zip->open($DelFilePath, ZipArchive::OVERWRITE) != TRUE) {
     die("Could not open archive");
   }
 
@@ -57,8 +57,6 @@ if (isset($_POST['export'])) {
   readfile($DelFilePath);
 
   unlink($DelFilePath);
-
-
   exit;
 }
 ?>
