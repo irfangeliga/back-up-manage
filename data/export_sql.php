@@ -24,7 +24,7 @@ if (isset($_POST['export'])) {
 
   $zip = new ZipArchive();
 
-  $DelFilePath = $filename . ".zip";
+  $DelFilePath = $filename . "(" . date('Y-m-d H:i:s') . ").zip";
 
   if (file_exists($DelFilePath)) {
 
@@ -124,7 +124,7 @@ if (isset($_POST['export'])) {
   <?php
   $_SESSION['success'] = 0;
   if ($success > 0) {
-    ?>
+  ?>
     <a href="./export_sql.php">
       <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -172,17 +172,17 @@ if (isset($_POST['export'])) {
       }
     }
 
-    $(window).on('load', function () {
+    $(window).on('load', function() {
       $('#exampleModal').modal('show');
     });
 
     var i = 0;
-    $('#password').focusout(function (e) {
+    $('#password').focusout(function(e) {
       i = 1;
       $('#myForm').submit();
     });
 
-    $("#myForm").submit(function (event) {
+    $("#myForm").submit(function(event) {
       if (i) {
         let formData = $('#myForm').serialize();
         event.preventDefault();
@@ -190,7 +190,7 @@ if (isset($_POST['export'])) {
           method: "POST",
           url: 'back_end.php',
           data: formData,
-          success: function (data) {
+          success: function(data) {
             i = 0;
             console.log(data);
             document.getElementById('database').innerHTML = data;
@@ -216,7 +216,7 @@ if (isset($_POST['export'])) {
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
     integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous">
-    </script>
+  </script>
 </body>
 
 </html>
