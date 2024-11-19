@@ -15,9 +15,6 @@ if (isset($_POST['export'])) {
   $filename = !empty($_POST['filename']) ? $_POST['filename'] : 'mySQLDump' . rand(10, 1000);
 
   foreach ($database as $db) {
-    // $dir = getenv('HOMEDRIVE') . getenv('HOMEPATH') . '\Downloads' . '/' . $filename . '.sql';
-    // $command = "mysqldump --host=" . $host . " --user=" . $user . " --password=" . $pass . " " . $db . " > " . $db . ".sql";
-
     $dump = new \Druidfi\Mysqldump\Mysqldump('mysql:host=' . $host . ';dbname=' . $db, $user, $pass);
     $dump->start("./temp/" . $db . '.sql');
   }
