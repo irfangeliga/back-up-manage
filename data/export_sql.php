@@ -2,41 +2,30 @@
 require_once 'vendor/autoload.php';
 
 set_time_limit(0);
+ini_set('memory_limit', '-1');
 session_start();
 $success = isset($_SESSION['success']) ? $_SESSION['success'] : 0;
 
 if (isset($_POST['export'])) {
   $output = NULL;
   $result = NULL;
+  $dataString = "";
   $database = $_POST['database'];
   $user = $_POST['username'];
   $pass = $_POST['password'];
   $host = $_POST['host'];
   $filename = !empty($_POST['filename']) ? $_POST['filename'] : 'mySQLDump' . rand(10, 1000);
 
-  foreach ($database as $db) {
+  foreach ($database as $key => $db) {
     $dump = new \Druidfi\Mysqldump\Mysqldump('mysql:host=' . $host . ';dbname=' . $db, $user, $pass);
     $dump->start("./temp/" . $db . '.sql');
+
+    if (file_exists("./temp/" . $db . ".sql")) {
+      $result = 1;
+    } else {
+      $result = null;
+    }
   }
-
-  $zip = new ZipArchive();
-  $DelFilePath = "./" . $filename . "(" . date('Y-m-d H:i:s') . ").zip";
-
-  if (file_exists($DelFilePath)) {
-
-    unlink($DelFilePath);
-  }
-  // if ($zip->open($DelFilePath, ZIPARCHIVE::CREATE) != TRUE) {
-  if ($zip->open($DelFilePath, ZipArchive::OVERWRITE) != TRUE) {
-    die("Could not open archive");
-  }
-
-  foreach ($database as $db) {
-    $zip->addFile("./temp/" . $db . ".sql", $db . ".sql");
-  }
-
-  $zip->close();
-  $result = 1;
 
   if ($result) {
     $_SESSION['success'] = 1;
@@ -45,19 +34,54 @@ if (isset($_POST['export'])) {
   }
 
   foreach ($database as $db) {
-    unlink("./temp/" . $db . ".sql");
+    echo ("<script>window.open('./temp/" . $db . ".sql');</script>");
   }
+  echo "<script>window.close();</script>";
+  // $_SESSION['database'] = $filename;
+
+  // echo "<script>location.href='export_zip.php';window.close()</script>";
+
+  // ==============================
+
+  // $zip = new \ZipArchive();
+  // $DelFilePath = $filename . "(" . date('Y-m-d H:i:s') . ").zip";
+
+  // if (file_exists($DelFilePath)) {
+
+  //   unlink($DelFilePath);
+  // }
+  // if ($zip->open($DelFilePath, ZIPARCHIVE::CREATE | ZIPARCHIVE::OVERWRITE) != TRUE) {
+  //   die("Could not open archive");
+  // }
 
 
-  header($_SERVER['SERVER_PROTOCOL'] . ' 200 OK');
-  header("Content-Type: application/zip");
-  header("Content-Transfer-Encoding: Binary");
-  header("Content-Length: " . filesize($DelFilePath));
-  header("Content-Disposition: attachment; filename=" . $DelFilePath);
-  readfile($DelFilePath);
+  // foreach ($database as $db) {
+  //   $zip->addFile("./temp/" . $db . ".sql", $db . ".sql");
+  // }
+  // exit;
+  // $zip->close();
+  // $result = 1;
 
-  unlink($DelFilePath);
-  exit;
+  // if ($result) {
+  //   $_SESSION['success'] = 1;
+  // } else {
+  //   $_SESSION['success'] = 2;
+  // }
+
+  // foreach ($database as $db) {
+  //   unlink("./temp/" . $db . ".sql");
+  // }
+
+
+  // header($_SERVER['SERVER_PROTOCOL'] . ' 200 OK');
+  // header("Content-Type: application/zip");
+  // header("Content-Transfer-Encoding: Binary");
+  // header("Content-Length: " . filesize($DelFilePath));
+  // header("Content-Disposition: attachment; filename=" . $DelFilePath);
+  // readfile($DelFilePath);
+
+  // unlink($DelFilePath);
+  // exit;
 }
 ?>
 
@@ -117,43 +141,41 @@ if (isset($_POST['export'])) {
   </div>
 
   <?php
-  $_SESSION['success'] = 0;
   if ($success > 0) {
+    $_SESSION['success'] = 0;
   ?>
-    <a href="./export_sql.php">
-      <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h1 class="modal-title fs-5 text-dark" id="exampleModalLabel">Modal title</h1>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h1 class="modal-title fs-5 text-dark" id="exampleModalLabel">Modal title</h1>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="text-center">
+              <?php if ($success == 1) { ?>
+                <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="currentColor"
+                  class="bi bi-check-circle-fill text-success" viewBox="0 0 16 16">
+                  <path
+                    d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z" />
+                </svg><br><br>
+                <h4 class="text-muted">Export Database Successfully</h4>
+              <?php } else { ?>
+                <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="currentColor"
+                  class="bi bi-x-circle text-success" viewBox="0 0 16 16">
+                  <path
+                    d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z" />
+                </svg><br><br>
+                <h4 class="text-muted">Export Database Failed</h4>
+              <?php } ?>
             </div>
-            <div class="modal-body">
-              <div class="text-center">
-                <?php if ($success == 1) { ?>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="currentColor"
-                    class="bi bi-check-circle-fill text-success" viewBox="0 0 16 16">
-                    <path
-                      d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z" />
-                  </svg><br><br>
-                  <h4 class="text-muted">Export Database Successfully</h4>
-                <?php } else { ?>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="currentColor"
-                    class="bi bi-x-circle text-success" viewBox="0 0 16 16">
-                    <path
-                      d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z" />
-                  </svg><br><br>
-                  <h4 class="text-muted">Export Database Failed</h4>
-                <?php } ?>
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-primary w-100">OK</button>
-            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary w-100">OK</button>
           </div>
         </div>
       </div>
-    </a>
+    </div>
   <?php } ?>
 
   <script>
